@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ViaPadelClub-Kim-DCA1-Frontend
+        working-directory: viapadelclub-kim-dca1-frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: ViaPadelClub-Kim-DCA1-Frontend/package-lock.json
+          cache-dependency-path: viapadelclub-kim-dca1-frontend/package-lock.json
 
       - name: Install
         run: npm ci
@@ -40,7 +40,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ViaPadelClub-Kim-DCA1-Frontend/dist
+          path: viapadelclub-kim-dca1-frontend/dist
 
   deploy:
     environment:
