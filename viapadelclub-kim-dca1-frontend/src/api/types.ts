@@ -10,6 +10,13 @@ export interface RegisterPlayerResponse {
   isBanned?: boolean
 }
 
+export interface PlayerSummary {
+  playerId: string
+  universityName: string
+  isVip: boolean
+  isBanned: boolean
+}
+
 export interface CreateManagerRequest {
   managerId: string
   padelCompanyName: string
@@ -64,6 +71,10 @@ export type UpcomingDailySchedulesResponse = UpcomingDailySchedule[]
 
 export interface CourtsResponse {
   courts: Court[]
+}
+
+export interface PlayersResponse {
+  players: PlayerSummary[]
 }
 
 export interface ScheduleCourt {

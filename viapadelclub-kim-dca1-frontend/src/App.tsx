@@ -16,6 +16,7 @@ import {
   createDailySchedule,
   createManager,
   getCourts,
+  getPlayers,
   getUpcomingDailySchedules,
   grantVip,
   registerPlayer,
@@ -29,6 +30,7 @@ import type {
   CreateDailyScheduleRequest,
   CreateManagerRequest,
   Court,
+  PlayerSummary,
   PlayerAdminActionRequest,
   RegisterPlayerRequest,
   RegisterPlayerResponse,
@@ -142,6 +144,10 @@ function App() {
     dailyScheduleCourtId: '',
   })
   const [bookingSelection, setBookingSelection] = useState('')
+  const [players, setPlayers] = useState<PlayerSummary[]>([])
+  const [playersError, setPlayersError] = useState<string | null>(null)
+  const [playersLoading, setPlayersLoading] = useState(false)
+  const [playerSelection, setPlayerSelection] = useState('')
   const [bookingStatus, setBookingStatus] = useState<string | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [bookingLoading, setBookingLoading] = useState(false)
@@ -280,6 +286,21 @@ function App() {
       )
     } finally {
       setCourtsLoading(false)
+    }
+  }
+
+  const loadPlayers = async () => {
+    setPlayersLoading(true)
+    setPlayersError(null)
+    try {
+      const response = await getPlayers()
+      setPlayers(Array.isArray(response.players) ? response.players : [])
+    } catch (error) {
+      setPlayersError(
+        error instanceof Error ? error.message : 'Failed to load players',
+      )
+    } finally {
+      setPlayersLoading(false)
     }
   }
 
@@ -452,6 +473,7 @@ function App() {
       setBookingState(initialBookingState)
       setBookingTarget({ dailyScheduleId: '', dailyScheduleCourtId: '' })
       setBookingSelection('')
+      setPlayerSelection('')
     } catch (error) {
       setBookingError(
         error instanceof Error ? error.message : 'Failed to create booking',
@@ -1081,18 +1103,37 @@ function App() {
             </div>
           </label>
           <label className="field">
-            Player ID (GUID)
-            <input
-              value={bookingState.playerId}
-              onChange={(event) =>
-                setBookingState((current) => ({
-                  ...current,
-                  playerId: event.target.value,
-                }))
-              }
-              placeholder="Use a player GUID"
-            />
+            Player
+            <div className="field-row">
+              <select
+                value={playerSelection}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setPlayerSelection(value)
+                  setBookingState((current) => ({
+                    ...current,
+                    playerId: value,
+                  }))
+                }}
+                disabled={playersLoading}
+              >
+                <option value="">Select a player</option>
+                {players.map((player) => (
+                  <option key={player.playerId} value={player.playerId}>
+                    {player.universityName}
+                    {player.isVip ? ' - VIP' : ''}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={loadPlayers} disabled={playersLoading}>
+                {playersLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </label>
+          {!playersLoading && players.length === 0 && (
+            <p className="status muted">No players available.</p>
+          )}
+          {playersError && <p className="status error">{playersError}</p>}
           <label className="field">
             Slot start (ISO datetime)
             <input

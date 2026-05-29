@@ -6,6 +6,7 @@ import type {
   CreateDailyScheduleRequest,
   CreateManagerRequest,
   CourtsResponse,
+  PlayersResponse,
   PlayerAdminActionRequest,
   RegisterPlayerRequest,
   RegisterPlayerResponse,
@@ -95,6 +96,14 @@ export async function getCourts(): Promise<CourtsResponse> {
   await assertOk(response, 'Failed to load courts')
 
   return (await response.json()) as CourtsResponse
+}
+
+export async function getPlayers(): Promise<PlayersResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/players?isBanned=false`)
+
+  await assertOk(response, 'Failed to load players')
+
+  return (await response.json()) as PlayersResponse
 }
 
 export async function createDailySchedule(
