@@ -269,6 +269,11 @@ function App() {
     bookingCancelState.dailyScheduleCourtId,
     bookingCancelState.bookingId,
   ])
+  const isGuid = (value: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+
   const adminManagerError = useMemo(() => {
     if (!adminActionState.managerId.trim()) {
       return 'Manager ID is required.'
@@ -337,11 +342,6 @@ function App() {
       return Math.floor(digit).toString(16)
     })
   }
-
-  const isGuid = (value: string) =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      value,
-    )
 
   const loadCourts = async () => {
     setCourtsLoading(true)
