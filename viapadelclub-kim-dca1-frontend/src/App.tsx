@@ -900,7 +900,7 @@ function App() {
                 <option value="">Select a schedule</option>
                 {schedules.map((schedule) => (
                   <option key={schedule.dailyScheduleId} value={schedule.dailyScheduleId}>
-                    {schedule.dailyScheduleId}
+                    {schedule.status} - {schedule.windowStart} to {schedule.windowEnd}
                   </option>
                 ))}
               </select>
@@ -909,6 +909,10 @@ function App() {
               </button>
             </div>
           </label>
+          {!scheduleLoading && schedules.length === 0 && (
+            <p className="status muted">No daily schedules available.</p>
+          )}
+          {scheduleError && <p className="status error">{scheduleError}</p>}
           <label className="field">
             Daily schedule court ID (GUID)
             <div className="field-row">

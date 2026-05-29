@@ -235,17 +235,13 @@ export async function unbanPlayer(
 }
 
 export async function getUpcomingDailySchedules(): Promise<UpcomingDailySchedulesResponse> {
-  const response = await fetch(`${apiBaseUrl}/api/daily-schedules/upcoming?count=3`)
+  const response = await fetch(`${apiBaseUrl}/api/daily-schedules/upcoming?count=50`)
 
   await assertOk(response, 'Failed to load upcoming schedules')
 
-  const payload = (await response.json()) as
-    | UpcomingDailySchedulesResponse
-    | { items?: UpcomingDailySchedulesResponse }
-
-  if (Array.isArray(payload)) {
-    return payload
+  const payload = (await response.json()) as {
+    dailySchedules?: UpcomingDailySchedulesResponse
   }
 
-  return Array.isArray(payload.items) ? payload.items : []
+  return Array.isArray(payload.dailySchedules) ? payload.dailySchedules : []
 }
