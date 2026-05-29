@@ -47,6 +47,13 @@
   gap: 16px;
 }
 
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
 .field {
   display: flex;
   flex-direction: column;

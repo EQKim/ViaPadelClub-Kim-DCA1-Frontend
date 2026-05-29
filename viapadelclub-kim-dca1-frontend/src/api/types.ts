@@ -1,14 +1,48 @@
 export interface RegisterPlayerRequest {
   playerId: string
-  universityCollegeName: string
-  isVip: boolean
+  universityName: string
 }
 
 export interface RegisterPlayerResponse {
   playerId: string
-  universityCollegeName: string
-  isVip: boolean
-  isBanned: boolean
+  universityName: string
+  isVip?: boolean
+  isBanned?: boolean
+}
+
+export interface CreateManagerRequest {
+  managerId: string
+  padelCompanyName: string
+}
+
+export interface CreateCourtRequest {
+  courtId: string
+  courtName: string
+}
+
+export interface CreateDailyScheduleRequest {
+  dailyScheduleId: string
+  managerId: string
+  windowStart: string
+  windowEnd: string
+}
+
+export interface AddDailyScheduleCourtRequest {
+  dailyScheduleCourtId: string
+  courtId: string
+  isVipOnly: boolean
+}
+
+export interface CreateBookingRequest {
+  bookingId: string
+  playerId: string
+  slotStart: string
+  slotEnd: string
+}
+
+export interface PlayerAdminActionRequest {
+  managerId: string
+  reason: string
 }
 
 export interface UpcomingDailySchedule {
