@@ -292,6 +292,40 @@ function App() {
     adminManagerError,
   ])
 
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') {
+        return
+      }
+      const storage = window.localStorage
+      const storedManagerId = storage.getItem('adminManagerId')
+      if (storedManagerId) {
+        setAdminActionState((current) => ({
+          ...current,
+          managerId: storedManagerId,
+        }))
+      }
+    } catch {
+      // Ignore storage access errors.
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') {
+        return
+      }
+      const storage = window.localStorage
+      if (!adminActionState.managerId) {
+        storage.removeItem('adminManagerId')
+        return
+      }
+      storage.setItem('adminManagerId', adminActionState.managerId)
+    } catch {
+      // Ignore storage access errors.
+    }
+  }, [adminActionState.managerId])
+
   const generateGuid = () => {
     if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
       return crypto.randomUUID()
