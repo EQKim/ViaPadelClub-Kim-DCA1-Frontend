@@ -14,9 +14,17 @@ import type {
 
 function formatApiError(payload: unknown, fallback: string) {
   if (payload && typeof payload === 'object' && 'errors' in payload) {
-    const errors = (payload as { errors?: string[] }).errors
+    const errors = (payload as { errors?: Array<string | { message?: string }> })
+      .errors
     if (Array.isArray(errors) && errors.length > 0) {
-      return errors.join('\n')
+      return errors
+        .map((error) =>
+          typeof error === 'string'
+            ? error
+            : error.message || fallback,
+        )
+        .filter(Boolean)
+        .join('\n')
     }
   }
   return fallback
