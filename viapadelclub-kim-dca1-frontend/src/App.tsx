@@ -489,6 +489,132 @@ function App() {
     }
   }
 
+  type TimelineSlot = { start: Date; end: Date }
+  type BookingTimeline = {
+    windowStart: Date
+    windowEnd: Date
+    activeBookings: TimelineSlot[]
+    available: TimelineSlot[]
+  }
+
+  const selectedScheduleCourt = useMemo(() => {
+    if (!bookingTarget.dailyScheduleId || !bookingTarget.dailyScheduleCourtId) {
+      return null
+    }
+    const schedule = schedules.find(
+      (item) => item.dailyScheduleId === bookingTarget.dailyScheduleId,
+    )
+    const court = schedule?.courts?.find(
+      (item) => item.dailyScheduleCourtId === bookingTarget.dailyScheduleCourtId,
+    )
+    if (!schedule || !court) {
+      return null
+    }
+    return { schedule, court }
+  }, [
+    bookingTarget.dailyScheduleId,
+    bookingTarget.dailyScheduleCourtId,
+    schedules,
+  ])
+
+  const bookingTimeline = useMemo<BookingTimeline | null>(() => {
+    if (!selectedScheduleCourt) {
+      return null
+    }
+
+    const windowStart = new Date(selectedScheduleCourt.schedule.windowStart)
+    const windowEnd = new Date(selectedScheduleCourt.schedule.windowEnd)
+    if (Number.isNaN(windowStart.valueOf()) || Number.isNaN(windowEnd.valueOf())) {
+      return null
+    }
+
+    const activeBookings = (selectedScheduleCourt.court.bookings ?? [])
+      .filter((booking) => booking.status === 'Active')
+      .map((booking) => ({
+        start: new Date(booking.slotStart),
+        end: new Date(booking.slotEnd),
+      }))
+      .filter(
+        (booking) =>
+          !Number.isNaN(booking.start.valueOf()) &&
+          !Number.isNaN(booking.end.valueOf()),
+      )
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
+
+    const available: TimelineSlot[] = []
+    let cursor = windowStart
+    for (const booking of activeBookings) {
+      if (booking.end <= windowStart || booking.start >= windowEnd) {
+        continue
+      }
+      const start = booking.start < windowStart ? windowStart : booking.start
+      const end = booking.end > windowEnd ? windowEnd : booking.end
+      if (start > cursor) {
+        available.push({ start: cursor, end: start })
+      }
+      if (end > cursor) {
+        cursor = end
+      }
+    }
+    if (cursor < windowEnd) {
+      available.push({ start: cursor, end: windowEnd })
+    }
+
+    return {
+      windowStart,
+      windowEnd,
+      activeBookings,
+      available,
+    }
+  }, [selectedScheduleCourt])
+
+  const selectedRange = useMemo<TimelineSlot | null>(() => {
+    if (!bookingState.slotStart || !bookingState.slotEnd) {
+      return null
+    }
+    const start = new Date(bookingState.slotStart)
+    const end = new Date(bookingState.slotEnd)
+    if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf())) {
+      return null
+    }
+    return { start, end }
+  }, [bookingState.slotStart, bookingState.slotEnd])
+
+  useEffect(() => {
+    if (!bookingTimeline || !selectedRange) {
+      setBookingWindowError(null)
+      return
+    }
+
+    const { windowStart, windowEnd, activeBookings } = bookingTimeline
+    if (selectedRange.start < windowStart || selectedRange.end > windowEnd) {
+      setBookingWindowError('Selected time is outside the schedule window.')
+      return
+    }
+    if (selectedRange.start >= selectedRange.end) {
+      setBookingWindowError('End time must be after start time.')
+      return
+    }
+    const overlaps = activeBookings.some(
+      (booking) =>
+        selectedRange.start < booking.end && selectedRange.end > booking.start,
+    )
+    if (overlaps) {
+      setBookingWindowError('Selected time overlaps an active booking.')
+      return
+    }
+    setBookingWindowError(null)
+  }, [bookingTimeline, selectedRange])
+
+  const formatTime = (value: Date) =>
+    value.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+
+  const formatRange = (start: Date, end: Date) =>
+    `${formatTime(start)} - ${formatTime(end)}`
+
   const handleBookingCancel = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setBookingCancelLoading(true)
