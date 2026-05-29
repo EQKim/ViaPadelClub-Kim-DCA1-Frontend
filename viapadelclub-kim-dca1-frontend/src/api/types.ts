@@ -57,10 +57,20 @@ export interface UpcomingDailySchedule {
   windowStart: string
   windowEnd: string
   status: string
+  courts?: ScheduleCourt[]
 }
 
 export type UpcomingDailySchedulesResponse = UpcomingDailySchedule[]
 
 export interface CourtsResponse {
   courts: Court[]
+}
+
+export interface ScheduleCourt {
+  dailyScheduleCourtId: string
+  courtId: string
+  courtName: string
+  isVipOnly: boolean
+  activeBookings: number
+  bookings: unknown[]
 }

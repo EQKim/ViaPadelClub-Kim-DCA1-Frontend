@@ -141,6 +141,7 @@ function App() {
     dailyScheduleId: '',
     dailyScheduleCourtId: '',
   })
+  const [bookingSelection, setBookingSelection] = useState('')
   const [bookingStatus, setBookingStatus] = useState<string | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [bookingLoading, setBookingLoading] = useState(false)
@@ -450,6 +451,7 @@ function App() {
       setBookingStatus('Booking created.')
       setBookingState(initialBookingState)
       setBookingTarget({ dailyScheduleId: '', dailyScheduleCourtId: '' })
+      setBookingSelection('')
     } catch (error) {
       setBookingError(
         error instanceof Error ? error.message : 'Failed to create booking',
@@ -1008,31 +1010,50 @@ function App() {
         </div>
         <form className="form" onSubmit={handleBookingSubmit}>
           <label className="field">
-            Daily schedule ID (GUID)
-            <input
-              value={bookingTarget.dailyScheduleId}
-              onChange={(event) =>
-                setBookingTarget((current) => ({
-                  ...current,
-                  dailyScheduleId: event.target.value,
-                }))
-              }
-              placeholder="Enter schedule GUID"
-            />
+            Schedule court
+            <div className="field-row">
+              <select
+                value={bookingSelection}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setBookingSelection(value)
+                  if (!value) {
+                    setBookingTarget({ dailyScheduleId: '', dailyScheduleCourtId: '' })
+                    return
+                  }
+                  const [dailyScheduleId, dailyScheduleCourtId] = value.split('|')
+                  setBookingTarget({
+                    dailyScheduleId: dailyScheduleId ?? '',
+                    dailyScheduleCourtId: dailyScheduleCourtId ?? '',
+                  })
+                }}
+              >
+                <option value="">Select a schedule court</option>
+                {schedules.flatMap((schedule) =>
+                  (schedule.courts ?? []).map((court) => {
+                    const label = `${court.courtName} - ${schedule.windowStart} to ${schedule.windowEnd} - ${schedule.status} - ${court.activeBookings} active bookings${court.isVipOnly ? ' - VIP only' : ''}`
+                    return (
+                      <option
+                        key={`${schedule.dailyScheduleId}-${court.dailyScheduleCourtId}`}
+                        value={`${schedule.dailyScheduleId}|${court.dailyScheduleCourtId}`}
+                      >
+                        {label}
+                      </option>
+                    )
+                  }),
+                )}
+              </select>
+              <button type="button" onClick={loadSchedules} disabled={scheduleLoading}>
+                {scheduleLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </label>
-          <label className="field">
-            Daily schedule court ID (GUID)
-            <input
-              value={bookingTarget.dailyScheduleCourtId}
-              onChange={(event) =>
-                setBookingTarget((current) => ({
-                  ...current,
-                  dailyScheduleCourtId: event.target.value,
-                }))
-              }
-              placeholder="Enter schedule court GUID"
-            />
-          </label>
+          {!scheduleLoading &&
+            schedules.length > 0 &&
+            schedules.every((schedule) => (schedule.courts ?? []).length === 0) && (
+              <p className="status muted">No schedule courts available.</p>
+            )}
+          {scheduleError && <p className="status error">{scheduleError}</p>}
           <label className="field">
             Booking ID (GUID)
             <div className="field-row">
