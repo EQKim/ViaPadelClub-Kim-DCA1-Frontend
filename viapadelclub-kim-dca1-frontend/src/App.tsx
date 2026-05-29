@@ -266,6 +266,7 @@ function App() {
     } finally {
       setScheduleLoading(false)
     }
+  }
 
   const handleManagerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -503,7 +504,6 @@ function App() {
     } finally {
       setUnbanLoading(false)
     }
-  }
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
