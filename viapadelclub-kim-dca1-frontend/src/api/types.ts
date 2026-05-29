@@ -83,5 +83,11 @@ export interface ScheduleCourt {
   courtName: string
   isVipOnly: boolean
   activeBookings: number
-  bookings: unknown[]
+  bookings: BookingSummary[]
+}
+
+export interface BookingSummary {
+  slotStart: string
+  slotEnd: string
+  status: string
 }

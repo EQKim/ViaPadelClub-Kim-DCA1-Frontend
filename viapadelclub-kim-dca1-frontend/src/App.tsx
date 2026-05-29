@@ -148,6 +148,9 @@ function App() {
   const [playersError, setPlayersError] = useState<string | null>(null)
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playerSelection, setPlayerSelection] = useState('')
+  const [bookingWindowError, setBookingWindowError] = useState<string | null>(
+    null,
+  )
   const [bookingStatus, setBookingStatus] = useState<string | null>(null)
   const [bookingError, setBookingError] = useState<string | null>(null)
   const [bookingLoading, setBookingLoading] = useState(false)
@@ -229,7 +232,8 @@ function App() {
       bookingState.bookingId.trim() &&
       bookingState.playerId.trim() &&
       bookingState.slotStart.trim() &&
-      bookingState.slotEnd.trim()
+      bookingState.slotEnd.trim() &&
+      !bookingWindowError
     )
   }, [
     bookingTarget.dailyScheduleId,
@@ -238,6 +242,7 @@ function App() {
     bookingState.playerId,
     bookingState.slotStart,
     bookingState.slotEnd,
+    bookingWindowError,
   ])
   const canCancelBooking = useMemo(() => {
     return (
@@ -474,6 +479,7 @@ function App() {
       setBookingTarget({ dailyScheduleId: '', dailyScheduleCourtId: '' })
       setBookingSelection('')
       setPlayerSelection('')
+      setBookingWindowError(null)
     } catch (error) {
       setBookingError(
         error instanceof Error ? error.message : 'Failed to create booking',
@@ -1041,6 +1047,7 @@ function App() {
                   setBookingSelection(value)
                   if (!value) {
                     setBookingTarget({ dailyScheduleId: '', dailyScheduleCourtId: '' })
+                    setBookingWindowError(null)
                     return
                   }
                   const [dailyScheduleId, dailyScheduleCourtId] = value.split('|')
@@ -1076,6 +1083,129 @@ function App() {
               <p className="status muted">No schedule courts available.</p>
             )}
           {scheduleError && <p className="status error">{scheduleError}</p>}
+          {selectedScheduleCourt && bookingTimeline && (
+            <div className="timeline-panel">
+              <div className="timeline-summary">
+                <div>
+                  <strong>{selectedScheduleCourt.court.courtName}</strong>
+                  {selectedScheduleCourt.court.isVipOnly ? ' (VIP only)' : ''}
+                </div>
+                <div className="muted">
+                  {selectedScheduleCourt.schedule.windowStart} →
+                  {selectedScheduleCourt.schedule.windowEnd} ·
+                  {selectedScheduleCourt.schedule.status}
+                </div>
+                <div className="muted">
+                  {selectedScheduleCourt.court.activeBookings} active bookings
+                </div>
+              </div>
+              <div className="timeline">
+                <div className="timeline-bar">
+                  {bookingTimeline.available.map((slot) => {
+                    const left =
+                      ((slot.start.getTime() -
+                        bookingTimeline.windowStart.getTime()) /
+                        (bookingTimeline.windowEnd.getTime() -
+                          bookingTimeline.windowStart.getTime())) *
+                      100
+                    const width =
+                      ((slot.end.getTime() - slot.start.getTime()) /
+                        (bookingTimeline.windowEnd.getTime() -
+                          bookingTimeline.windowStart.getTime())) *
+                      100
+                    return (
+                      <button
+                        key={`${slot.start.toISOString()}-${slot.end.toISOString()}`}
+                        type="button"
+                        className="timeline-slot available"
+                        style={{ left: `${left}%`, width: `${width}%` }}
+                        onClick={() => {
+                          setBookingState((current) => ({
+                            ...current,
+                            slotStart: slot.start.toISOString().slice(0, 16),
+                            slotEnd: slot.end.toISOString().slice(0, 16),
+                          }))
+                        }}
+                        title={formatRange(slot.start, slot.end)}
+                      />
+                    )
+                  })}
+                  {bookingTimeline.activeBookings.map((booking) => {
+                    const left =
+                      ((booking.start.getTime() -
+                        bookingTimeline.windowStart.getTime()) /
+                        (bookingTimeline.windowEnd.getTime() -
+                          bookingTimeline.windowStart.getTime())) *
+                      100
+                    const width =
+                      ((booking.end.getTime() - booking.start.getTime()) /
+                        (bookingTimeline.windowEnd.getTime() -
+                          bookingTimeline.windowStart.getTime())) *
+                      100
+                    return (
+                      <span
+                        key={`${booking.start.toISOString()}-${booking.end.toISOString()}`}
+                        className="timeline-slot booked"
+                        style={{ left: `${left}%`, width: `${width}%` }}
+                        title={formatRange(booking.start, booking.end)}
+                      />
+                    )
+                  })}
+                  {selectedRange && (
+                    <span
+                      className={`timeline-slot selected${
+                        bookingWindowError ? ' conflict' : ''
+                      }`}
+                      style={{
+                        left: `${
+                          ((selectedRange.start.getTime() -
+                            bookingTimeline.windowStart.getTime()) /
+                            (bookingTimeline.windowEnd.getTime() -
+                              bookingTimeline.windowStart.getTime())) *
+                          100
+                        }%`,
+                        width: `${
+                          ((selectedRange.end.getTime() - selectedRange.start.getTime()) /
+                            (bookingTimeline.windowEnd.getTime() -
+                              bookingTimeline.windowStart.getTime())) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="timeline-labels">
+                  <span>{formatTime(bookingTimeline.windowStart)}</span>
+                  <span>{formatTime(bookingTimeline.windowEnd)}</span>
+                </div>
+              </div>
+              <div className="timeline-legend">
+                <span className="legend-item">
+                  <span className="legend-swatch available" /> Available
+                </span>
+                <span className="legend-item">
+                  <span className="legend-swatch booked" /> Booked
+                </span>
+                <span className="legend-item">
+                  <span className="legend-swatch selected" /> Selected
+                </span>
+              </div>
+              <div className="available-slots">
+                <p>Available:</p>
+                {bookingTimeline.available.length === 0 ? (
+                  <p className="muted">No available slots.</p>
+                ) : (
+                  <ul>
+                    {bookingTimeline.available.map((slot) => (
+                      <li key={`${slot.start.toISOString()}-${slot.end.toISOString()}`}>
+                        {formatRange(slot.start, slot.end)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
           <label className="field">
             Booking ID (GUID)
             <div className="field-row">
@@ -1162,6 +1292,9 @@ function App() {
               placeholder="2026-05-19T11:00"
             />
           </label>
+          {bookingWindowError && (
+            <p className="status error">{bookingWindowError}</p>
+          )}
           <button type="submit" disabled={!canCreateBooking || bookingLoading}>
             {bookingLoading ? 'Creating...' : 'Create booking'}
           </button>
