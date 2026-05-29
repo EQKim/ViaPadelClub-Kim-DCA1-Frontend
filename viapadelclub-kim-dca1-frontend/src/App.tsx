@@ -1,4 +1,4 @@
-import { type FormEvent, useMemo, useState } from 'react'
+import { type FormEvent, type SyntheticEvent, useMemo, useState } from 'react'
 import './App.css'
 import {
   activateDailySchedule,
@@ -446,7 +446,7 @@ function App() {
     }
   }
 
-  const handleRevokeVip = async (event: FormEvent<HTMLFormElement>) => {
+  const handleRevokeVip = async (event: SyntheticEvent) => {
     event.preventDefault()
     setRevokeVipLoading(true)
     setRevokeVipError(null)
@@ -466,7 +466,7 @@ function App() {
     }
   }
 
-  const handleBanPlayer = async (event: FormEvent<HTMLFormElement>) => {
+  const handleBanPlayer = async (event: SyntheticEvent) => {
     event.preventDefault()
     setBanLoading(true)
     setBanError(null)
@@ -486,7 +486,7 @@ function App() {
     }
   }
 
-  const handleUnbanPlayer = async (event: FormEvent<HTMLFormElement>) => {
+  const handleUnbanPlayer = async (event: SyntheticEvent) => {
     event.preventDefault()
     setUnbanLoading(true)
     setUnbanError(null)
