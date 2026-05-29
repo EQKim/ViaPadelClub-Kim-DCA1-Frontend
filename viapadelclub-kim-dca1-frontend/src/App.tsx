@@ -774,6 +774,7 @@ function App() {
     } finally {
       setUnbanLoading(false)
     }
+  }
 
   const adminManagerError = useMemo(() => {
     if (!adminActionState.managerId.trim()) {
@@ -803,7 +804,6 @@ function App() {
       (player) => player.playerId === playerActionState.playerId,
     )
   }, [adminPlayers, playerActionState.playerId])
-  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
