@@ -6,6 +6,7 @@ import type {
   CreateDailyScheduleRequest,
   CreateManagerRequest,
   CourtsResponse,
+  PlayerBookingsResponse,
   PlayersResponse,
   PlayerAdminActionRequest,
   RegisterPlayerRequest,
@@ -104,6 +105,16 @@ export async function getPlayers(): Promise<PlayersResponse> {
   await assertOk(response, 'Failed to load players')
 
   return (await response.json()) as PlayersResponse
+}
+
+export async function getPlayerBookings(
+  playerId: string,
+): Promise<PlayerBookingsResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/players/${playerId}/bookings`)
+
+  await assertOk(response, 'Failed to load player bookings')
+
+  return (await response.json()) as PlayerBookingsResponse
 }
 
 export async function createDailySchedule(

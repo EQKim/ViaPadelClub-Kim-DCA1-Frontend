@@ -16,6 +16,7 @@ import {
   createDailySchedule,
   createManager,
   getCourts,
+  getPlayerBookings,
   getPlayers,
   getUpcomingDailySchedules,
   grantVip,
@@ -30,6 +31,7 @@ import type {
   CreateDailyScheduleRequest,
   CreateManagerRequest,
   Court,
+  PlayerBooking,
   PlayerSummary,
   PlayerAdminActionRequest,
   RegisterPlayerRequest,
@@ -157,6 +159,13 @@ function App() {
   const [bookingCancelState, setBookingCancelState] = useState(
     initialBookingCancelState,
   )
+  const [cancelPlayerSelection, setCancelPlayerSelection] = useState('')
+  const [cancelBookingSelection, setCancelBookingSelection] = useState('')
+  const [playerBookings, setPlayerBookings] = useState<PlayerBooking[]>([])
+  const [playerBookingsError, setPlayerBookingsError] = useState<string | null>(
+    null,
+  )
+  const [playerBookingsLoading, setPlayerBookingsLoading] = useState(false)
   const [bookingCancelStatus, setBookingCancelStatus] = useState<string | null>(
     null,
   )
@@ -629,6 +638,9 @@ function App() {
       )
       setBookingCancelStatus('Booking canceled.')
       setBookingCancelState(initialBookingCancelState)
+      setCancelPlayerSelection('')
+      setCancelBookingSelection('')
+      setPlayerBookings([])
     } catch (error) {
       setBookingCancelError(
         error instanceof Error ? error.message : 'Failed to cancel booking',
@@ -734,6 +746,26 @@ function App() {
       )
     } finally {
       setRegisterLoading(false)
+    }
+  }
+
+  const loadPlayerBookings = async (playerId: string) => {
+    if (!playerId) {
+      setPlayerBookings([])
+      setPlayerBookingsError(null)
+      return
+    }
+    setPlayerBookingsLoading(true)
+    setPlayerBookingsError(null)
+    try {
+      const response = await getPlayerBookings(playerId)
+      setPlayerBookings(Array.isArray(response.bookings) ? response.bookings : [])
+    } catch (error) {
+      setPlayerBookingsError(
+        error instanceof Error ? error.message : 'Failed to load player bookings',
+      )
+    } finally {
+      setPlayerBookingsLoading(false)
     }
   }
 
@@ -1438,44 +1470,82 @@ function App() {
         </div>
         <form className="form" onSubmit={handleBookingCancel}>
           <label className="field">
-            Daily schedule ID (GUID)
-            <input
-              value={bookingCancelState.dailyScheduleId}
-              onChange={(event) =>
-                setBookingCancelState((current) => ({
-                  ...current,
-                  dailyScheduleId: event.target.value,
-                }))
-              }
-              placeholder="Enter schedule GUID"
-            />
+            Player
+            <div className="field-row">
+              <select
+                value={cancelPlayerSelection}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setCancelPlayerSelection(value)
+                  setCancelBookingSelection('')
+                  setBookingCancelState(initialBookingCancelState)
+                  void loadPlayerBookings(value)
+                }}
+                disabled={playersLoading}
+              >
+                <option value="">Select a player</option>
+                {players.map((player) => (
+                  <option key={player.playerId} value={player.playerId}>
+                    {player.universityName}
+                    {player.isVip ? ' - VIP' : ''}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={loadPlayers} disabled={playersLoading}>
+                {playersLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </label>
           <label className="field">
-            Daily schedule court ID (GUID)
-            <input
-              value={bookingCancelState.dailyScheduleCourtId}
-              onChange={(event) =>
-                setBookingCancelState((current) => ({
-                  ...current,
-                  dailyScheduleCourtId: event.target.value,
-                }))
-              }
-              placeholder="Enter schedule court GUID"
-            />
+            Booking
+            <div className="field-row">
+              <select
+                value={cancelBookingSelection}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setCancelBookingSelection(value)
+                  if (!value) {
+                    setBookingCancelState(initialBookingCancelState)
+                    return
+                  }
+                  const [dailyScheduleId, dailyScheduleCourtId, bookingId] =
+                    value.split('|')
+                  setBookingCancelState({
+                    dailyScheduleId: dailyScheduleId ?? '',
+                    dailyScheduleCourtId: dailyScheduleCourtId ?? '',
+                    bookingId: bookingId ?? '',
+                  })
+                }}
+                disabled={playerBookingsLoading || !cancelPlayerSelection}
+              >
+                <option value="">Select a booking</option>
+                {playerBookings.map((booking) => (
+                  <option
+                    key={booking.bookingId}
+                    value={`${booking.dailyScheduleId}|${booking.dailyScheduleCourtId}|${booking.bookingId}`}
+                  >
+                    {booking.courtName} - {booking.slotStart} to {booking.slotEnd} -
+                    {booking.status}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void loadPlayerBookings(cancelPlayerSelection)}
+                disabled={playerBookingsLoading || !cancelPlayerSelection}
+              >
+                {playerBookingsLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </label>
-          <label className="field">
-            Booking ID (GUID)
-            <input
-              value={bookingCancelState.bookingId}
-              onChange={(event) =>
-                setBookingCancelState((current) => ({
-                  ...current,
-                  bookingId: event.target.value,
-                }))
-              }
-              placeholder="Enter booking GUID"
-            />
-          </label>
+          {!playerBookingsLoading &&
+            cancelPlayerSelection &&
+            playerBookings.length === 0 && (
+              <p className="status muted">No active bookings for this player.</p>
+            )}
+          {playerBookingsError && (
+            <p className="status error">{playerBookingsError}</p>
+          )}
           <button type="submit" disabled={!canCancelBooking || bookingCancelLoading}>
             {bookingCancelLoading ? 'Canceling...' : 'Cancel booking'}
           </button>

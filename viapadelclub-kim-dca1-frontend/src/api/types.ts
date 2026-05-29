@@ -91,3 +91,17 @@ export interface BookingSummary {
   slotEnd: string
   status: string
 }
+
+export interface PlayerBooking {
+  dailyScheduleId: string
+  dailyScheduleCourtId: string
+  bookingId: string
+  courtName: string
+  slotStart: string
+  slotEnd: string
+  status: string
+}
+
+export interface PlayerBookingsResponse {
+  bookings: PlayerBooking[]
+}
