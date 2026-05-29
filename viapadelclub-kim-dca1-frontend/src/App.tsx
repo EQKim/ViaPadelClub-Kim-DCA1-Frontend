@@ -315,7 +315,12 @@ function App() {
     setDailyScheduleStatus(null)
 
     try {
-      await createDailySchedule(dailyScheduleState)
+      const payload = {
+        ...dailyScheduleState,
+        windowStart: new Date(dailyScheduleState.windowStart).toISOString(),
+        windowEnd: new Date(dailyScheduleState.windowEnd).toISOString(),
+      }
+      await createDailySchedule(payload)
       setDailyScheduleStatus('Daily schedule created.')
       setDailyScheduleState(initialDailyScheduleState)
     } catch (error) {
@@ -386,10 +391,15 @@ function App() {
     setBookingStatus(null)
 
     try {
+      const payload = {
+        ...bookingState,
+        slotStart: new Date(bookingState.slotStart).toISOString(),
+        slotEnd: new Date(bookingState.slotEnd).toISOString(),
+      }
       await createBooking(
         bookingTarget.dailyScheduleId,
         bookingTarget.dailyScheduleCourtId,
-        bookingState,
+        payload,
       )
       setBookingStatus('Booking created.')
       setBookingState(initialBookingState)
@@ -543,16 +553,29 @@ function App() {
         <form className="form" onSubmit={handleSubmit}>
           <label className="field">
             Player ID (GUID)
-            <input
-              value={formState.playerId}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  playerId: event.target.value,
-                }))
-              }
-              placeholder="e.g. 2f9a12e1-0f50-4d76-9ed6-5d8e2d0b8aa4"
-            />
+            <div className="field-row">
+              <input
+                value={formState.playerId}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    playerId: event.target.value,
+                  }))
+                }
+                placeholder="e.g. 2f9a12e1-0f50-4d76-9ed6-5d8e2d0b8aa4"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setFormState((current) => ({
+                    ...current,
+                    playerId: generateGuid(),
+                  }))
+                }
+              >
+                Generate
+              </button>
+            </div>
           </label>
           <label className="field">
             University/College Name
@@ -751,6 +774,7 @@ function App() {
           <label className="field">
             Window start (ISO datetime)
             <input
+              type="datetime-local"
               value={dailyScheduleState.windowStart}
               onChange={(event) =>
                 setDailyScheduleState((current) => ({
@@ -758,12 +782,13 @@ function App() {
                   windowStart: event.target.value,
                 }))
               }
-              placeholder="2026-05-19T08:00:00Z"
+              placeholder="2026-05-19T08:00"
             />
           </label>
           <label className="field">
             Window end (ISO datetime)
             <input
+              type="datetime-local"
               value={dailyScheduleState.windowEnd}
               onChange={(event) =>
                 setDailyScheduleState((current) => ({
@@ -771,7 +796,7 @@ function App() {
                   windowEnd: event.target.value,
                 }))
               }
-              placeholder="2026-05-19T18:00:00Z"
+              placeholder="2026-05-19T18:00"
             />
           </label>
           <button
@@ -970,6 +995,7 @@ function App() {
           <label className="field">
             Slot start (ISO datetime)
             <input
+              type="datetime-local"
               value={bookingState.slotStart}
               onChange={(event) =>
                 setBookingState((current) => ({
@@ -977,12 +1003,13 @@ function App() {
                   slotStart: event.target.value,
                 }))
               }
-              placeholder="2026-05-19T10:00:00Z"
+              placeholder="2026-05-19T10:00"
             />
           </label>
           <label className="field">
             Slot end (ISO datetime)
             <input
+              type="datetime-local"
               value={bookingState.slotEnd}
               onChange={(event) =>
                 setBookingState((current) => ({
@@ -990,7 +1017,7 @@ function App() {
                   slotEnd: event.target.value,
                 }))
               }
-              placeholder="2026-05-19T11:00:00Z"
+              placeholder="2026-05-19T11:00"
             />
           </label>
           <button type="submit" disabled={!canCreateBooking || bookingLoading}>
