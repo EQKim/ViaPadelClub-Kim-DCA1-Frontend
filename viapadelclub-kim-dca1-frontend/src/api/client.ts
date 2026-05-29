@@ -107,6 +107,14 @@ export async function getPlayers(): Promise<PlayersResponse> {
   return (await response.json()) as PlayersResponse
 }
 
+export async function getAllPlayers(): Promise<PlayersResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/players`)
+
+  await assertOk(response, 'Failed to load players')
+
+  return (await response.json()) as PlayersResponse
+}
+
 export async function getPlayerBookings(
   playerId: string,
 ): Promise<PlayerBookingsResponse> {

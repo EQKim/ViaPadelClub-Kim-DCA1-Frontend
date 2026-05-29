@@ -17,6 +17,7 @@ import {
   createManager,
   getCourts,
   getPlayerBookings,
+  getAllPlayers,
   getPlayers,
   getUpcomingDailySchedules,
   grantVip,
@@ -150,6 +151,10 @@ function App() {
   const [playersError, setPlayersError] = useState<string | null>(null)
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playerSelection, setPlayerSelection] = useState('')
+  const [adminPlayers, setAdminPlayers] = useState<PlayerSummary[]>([])
+  const [adminPlayersError, setAdminPlayersError] = useState<string | null>(null)
+  const [adminPlayersLoading, setAdminPlayersLoading] = useState(false)
+  const [playerSearch, setPlayerSearch] = useState('')
   const [bookingWindowError, setBookingWindowError] = useState<string | null>(
     null,
   )
@@ -268,12 +273,14 @@ function App() {
     return (
       playerActionState.playerId.trim() &&
       adminActionState.managerId.trim() &&
-      adminActionState.reason.trim()
+      adminActionState.reason.trim() &&
+      !adminManagerError
     )
   }, [
     playerActionState.playerId,
     adminActionState.managerId,
     adminActionState.reason,
+    adminManagerError,
   ])
 
   const generateGuid = () => {
@@ -288,6 +295,11 @@ function App() {
     })
   }
 
+  const isGuid = (value: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+
   const loadCourts = async () => {
     setCourtsLoading(true)
     setCourtsError(null)
@@ -300,6 +312,21 @@ function App() {
       )
     } finally {
       setCourtsLoading(false)
+    }
+  }
+
+  const loadAdminPlayers = async () => {
+    setAdminPlayersLoading(true)
+    setAdminPlayersError(null)
+    try {
+      const response = await getAllPlayers()
+      setAdminPlayers(Array.isArray(response.players) ? response.players : [])
+    } catch (error) {
+      setAdminPlayersError(
+        error instanceof Error ? error.message : 'Failed to load players',
+      )
+    } finally {
+      setAdminPlayersLoading(false)
     }
   }
 
@@ -660,7 +687,11 @@ function App() {
       await grantVip(playerActionState.playerId, adminActionState)
       setGrantVipStatus('VIP granted.')
       setPlayerActionState(initialPlayerActionState)
-      setAdminActionState(initialAdminActionState)
+      setAdminActionState((current) => ({
+        ...current,
+        reason: '',
+      }))
+      await loadAdminPlayers()
     } catch (error) {
       setGrantVipError(
         error instanceof Error ? error.message : 'Failed to grant VIP',
@@ -680,7 +711,11 @@ function App() {
       await revokeVip(playerActionState.playerId, adminActionState)
       setRevokeVipStatus('VIP revoked.')
       setPlayerActionState(initialPlayerActionState)
-      setAdminActionState(initialAdminActionState)
+      setAdminActionState((current) => ({
+        ...current,
+        reason: '',
+      }))
+      await loadAdminPlayers()
     } catch (error) {
       setRevokeVipError(
         error instanceof Error ? error.message : 'Failed to revoke VIP',
@@ -692,6 +727,9 @@ function App() {
 
   const handleBanPlayer = async (event: SyntheticEvent) => {
     event.preventDefault()
+    if (!window.confirm('Ban this player?')) {
+      return
+    }
     setBanLoading(true)
     setBanError(null)
     setBanStatus(null)
@@ -700,7 +738,11 @@ function App() {
       await banPlayer(playerActionState.playerId, adminActionState)
       setBanStatus('Player banned.')
       setPlayerActionState(initialPlayerActionState)
-      setAdminActionState(initialAdminActionState)
+      setAdminActionState((current) => ({
+        ...current,
+        reason: '',
+      }))
+      await loadAdminPlayers()
     } catch (error) {
       setBanError(
         error instanceof Error ? error.message : 'Failed to ban player',
@@ -720,7 +762,11 @@ function App() {
       await unbanPlayer(playerActionState.playerId, adminActionState)
       setUnbanStatus('Player unbanned.')
       setPlayerActionState(initialPlayerActionState)
-      setAdminActionState(initialAdminActionState)
+      setAdminActionState((current) => ({
+        ...current,
+        reason: '',
+      }))
+      await loadAdminPlayers()
     } catch (error) {
       setUnbanError(
         error instanceof Error ? error.message : 'Failed to unban player',
@@ -728,6 +774,35 @@ function App() {
     } finally {
       setUnbanLoading(false)
     }
+
+  const adminManagerError = useMemo(() => {
+    if (!adminActionState.managerId.trim()) {
+      return 'Manager ID is required.'
+    }
+    if (!isGuid(adminActionState.managerId.trim())) {
+      return 'Manager ID must be a valid GUID.'
+    }
+    return null
+  }, [adminActionState.managerId])
+
+  const filteredAdminPlayers = useMemo(() => {
+    const query = playerSearch.trim().toLowerCase()
+    if (!query) {
+      return adminPlayers
+    }
+    return adminPlayers.filter((player) =>
+      `${player.universityName}`.toLowerCase().includes(query),
+    )
+  }, [adminPlayers, playerSearch])
+
+  const selectedAdminPlayer = useMemo(() => {
+    if (!playerActionState.playerId) {
+      return null
+    }
+    return adminPlayers.find(
+      (player) => player.playerId === playerActionState.playerId,
+    )
+  }, [adminPlayers, playerActionState.playerId])
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -1565,17 +1640,35 @@ function App() {
         </div>
         <form className="form" onSubmit={handleGrantVip}>
           <label className="field">
-            Player ID (GUID)
-            <input
-              value={playerActionState.playerId}
-              onChange={(event) =>
-                setPlayerActionState({ playerId: event.target.value })
-              }
-              placeholder="Enter player GUID"
-            />
+            Player
+            <div className="field-row">
+              <select
+                value={playerActionState.playerId}
+                onChange={(event) =>
+                  setPlayerActionState({ playerId: event.target.value })
+                }
+                disabled={adminPlayersLoading}
+              >
+                <option value="">Select a player</option>
+                {filteredAdminPlayers.map((player) => (
+                  <option key={player.playerId} value={player.playerId}>
+                    {player.universityName}
+                    {player.isVip ? ' - VIP' : ''}
+                    {player.isBanned ? ' - Banned' : ''}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={loadAdminPlayers}
+                disabled={adminPlayersLoading}
+              >
+                {adminPlayersLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </label>
           <label className="field">
-            Manager ID (GUID)
+            Acting manager
             <input
               value={adminActionState.managerId}
               onChange={(event) =>
@@ -1587,6 +1680,7 @@ function App() {
               placeholder="Enter manager GUID"
             />
           </label>
+          {adminManagerError && <p className="status error">{adminManagerError}</p>}
           <label className="field">
             Reason
             <input
@@ -1601,32 +1695,60 @@ function App() {
             />
           </label>
           <div className="actions">
-            <button type="submit" disabled={!canRunPlayerAction || grantVipLoading}>
+            <button
+              type="submit"
+              disabled={
+                !canRunPlayerAction ||
+                grantVipLoading ||
+                (selectedAdminPlayer?.isVip ?? false)
+              }
+            >
               {grantVipLoading ? 'Granting...' : 'Grant VIP'}
             </button>
             <button
               type="button"
               onClick={handleRevokeVip}
-              disabled={!canRunPlayerAction || revokeVipLoading}
+              disabled={
+                !canRunPlayerAction ||
+                revokeVipLoading ||
+                !(selectedAdminPlayer?.isVip ?? false)
+              }
             >
               {revokeVipLoading ? 'Revoking...' : 'Revoke VIP'}
             </button>
             <button
               type="button"
               onClick={handleBanPlayer}
-              disabled={!canRunPlayerAction || banLoading}
+              disabled={
+                !canRunPlayerAction ||
+                banLoading ||
+                (selectedAdminPlayer?.isBanned ?? false)
+              }
             >
               {banLoading ? 'Banning...' : 'Ban player'}
             </button>
             <button
               type="button"
               onClick={handleUnbanPlayer}
-              disabled={!canRunPlayerAction || unbanLoading}
+              disabled={
+                !canRunPlayerAction ||
+                unbanLoading ||
+                !(selectedAdminPlayer?.isBanned ?? false)
+              }
             >
               {unbanLoading ? 'Unbanning...' : 'Unban player'}
             </button>
           </div>
         </form>
+        <label className="field">
+          Search player
+          <input
+            value={playerSearch}
+            onChange={(event) => setPlayerSearch(event.target.value)}
+            placeholder="Type to filter players"
+          />
+        </label>
+        {adminPlayersError && <p className="status error">{adminPlayersError}</p>}
         {grantVipError && <p className="status error">{grantVipError}</p>}
         {grantVipStatus && <p className="status success">{grantVipStatus}</p>}
         {revokeVipError && <p className="status error">{revokeVipError}</p>}
