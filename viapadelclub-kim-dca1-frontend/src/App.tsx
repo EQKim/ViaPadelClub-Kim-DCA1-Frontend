@@ -269,6 +269,15 @@ function App() {
     bookingCancelState.dailyScheduleCourtId,
     bookingCancelState.bookingId,
   ])
+  const adminManagerError = useMemo(() => {
+    if (!adminActionState.managerId.trim()) {
+      return 'Manager ID is required.'
+    }
+    if (!isGuid(adminActionState.managerId.trim())) {
+      return 'Manager ID must be a valid GUID.'
+    }
+    return null
+  }, [adminActionState.managerId])
   const canRunPlayerAction = useMemo(() => {
     return (
       playerActionState.playerId.trim() &&
@@ -775,16 +784,6 @@ function App() {
       setUnbanLoading(false)
     }
   }
-
-  const adminManagerError = useMemo(() => {
-    if (!adminActionState.managerId.trim()) {
-      return 'Manager ID is required.'
-    }
-    if (!isGuid(adminActionState.managerId.trim())) {
-      return 'Manager ID must be a valid GUID.'
-    }
-    return null
-  }, [adminActionState.managerId])
 
   const filteredAdminPlayers = useMemo(() => {
     const query = playerSearch.trim().toLowerCase()
