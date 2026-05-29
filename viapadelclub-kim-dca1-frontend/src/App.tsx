@@ -394,10 +394,10 @@ function App() {
         },
       )
       setDailyScheduleCourtStatus('Court added to schedule.')
-      setDailyScheduleCourtState((current) => ({
+      setDailyScheduleCourtState({
         ...initialDailyScheduleCourtState,
         dailyScheduleCourtId: generateGuid(),
-      }))
+      })
       setDailyScheduleCourtTarget('')
       setDailyScheduleCourtSelection('')
     } catch (error) {
