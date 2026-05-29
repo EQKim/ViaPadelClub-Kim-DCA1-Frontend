@@ -1,4 +1,10 @@
-import { type FormEvent, type SyntheticEvent, useMemo, useState } from 'react'
+import {
+  type FormEvent,
+  type SyntheticEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import './App.css'
 import {
   activateDailySchedule,
@@ -94,6 +100,7 @@ function App() {
   const [courtState, setCourtState] = useState<CreateCourtRequest>(
     initialCourtState,
   )
+  const [createdCourts, setCreatedCourts] = useState<CreateCourtRequest[]>([])
   const [courtStatus, setCourtStatus] = useState<string | null>(null)
   const [courtError, setCourtError] = useState<string | null>(null)
   const [courtLoading, setCourtLoading] = useState(false)
@@ -113,6 +120,9 @@ function App() {
   const [dailyScheduleCourtState, setDailyScheduleCourtState] =
     useState<AddDailyScheduleCourtRequest>(initialDailyScheduleCourtState)
   const [dailyScheduleCourtTarget, setDailyScheduleCourtTarget] = useState('')
+  const [dailyScheduleCourtSelection, setDailyScheduleCourtSelection] = useState(
+    '',
+  )
   const [dailyScheduleCourtStatus, setDailyScheduleCourtStatus] = useState<
     string | null
   >(null)
@@ -193,13 +203,13 @@ function App() {
   const canAddCourtToSchedule = useMemo(() => {
     return (
       dailyScheduleCourtTarget.trim() &&
-      dailyScheduleCourtState.dailyScheduleCourtId.trim() &&
-      dailyScheduleCourtState.courtId.trim()
+      dailyScheduleCourtSelection.trim() &&
+      dailyScheduleCourtState.dailyScheduleCourtId.trim()
     )
   }, [
     dailyScheduleCourtTarget,
+    dailyScheduleCourtSelection,
     dailyScheduleCourtState.dailyScheduleCourtId,
-    dailyScheduleCourtState.courtId,
   ])
   const canCreateBooking = useMemo(() => {
     return (
@@ -253,6 +263,15 @@ function App() {
     })
   }
 
+  useEffect(() => {
+    if (!dailyScheduleCourtState.dailyScheduleCourtId.trim()) {
+      setDailyScheduleCourtState((current) => ({
+        ...current,
+        dailyScheduleCourtId: generateGuid(),
+      }))
+    }
+  }, [dailyScheduleCourtState.dailyScheduleCourtId])
+
   const loadSchedules = async () => {
     setScheduleLoading(true)
     setScheduleError(null)
@@ -296,6 +315,7 @@ function App() {
     try {
       await createCourt(courtState)
       setCourtStatus('Court created.')
+      setCreatedCourts((current) => [...current, courtState])
       setCourtState(initialCourtState)
     } catch (error) {
       setCourtError(
@@ -368,11 +388,18 @@ function App() {
     try {
       await addDailyScheduleCourt(
         dailyScheduleCourtTarget,
-        dailyScheduleCourtState,
+        {
+          ...dailyScheduleCourtState,
+          courtId: dailyScheduleCourtSelection,
+        },
       )
       setDailyScheduleCourtStatus('Court added to schedule.')
-      setDailyScheduleCourtState(initialDailyScheduleCourtState)
+      setDailyScheduleCourtState((current) => ({
+        ...initialDailyScheduleCourtState,
+        dailyScheduleCourtId: generateGuid(),
+      }))
       setDailyScheduleCourtTarget('')
+      setDailyScheduleCourtSelection('')
     } catch (error) {
       setDailyScheduleCourtError(
         error instanceof Error
@@ -845,12 +872,23 @@ function App() {
         </div>
         <form className="form" onSubmit={handleDailyScheduleCourtSubmit}>
           <label className="field">
-            Daily schedule ID (GUID)
-            <input
-              value={dailyScheduleCourtTarget}
-              onChange={(event) => setDailyScheduleCourtTarget(event.target.value)}
-              placeholder="Enter schedule GUID"
-            />
+            Daily schedule
+            <div className="field-row">
+              <select
+                value={dailyScheduleCourtTarget}
+                onChange={(event) => setDailyScheduleCourtTarget(event.target.value)}
+              >
+                <option value="">Select a schedule</option>
+                {schedules.map((schedule) => (
+                  <option key={schedule.dailyScheduleId} value={schedule.dailyScheduleId}>
+                    {schedule.dailyScheduleId}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={loadSchedules} disabled={scheduleLoading}>
+                {scheduleLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </label>
           <label className="field">
             Daily schedule court ID (GUID)
@@ -879,17 +917,18 @@ function App() {
             </div>
           </label>
           <label className="field">
-            Court ID (GUID)
-            <input
-              value={dailyScheduleCourtState.courtId}
-              onChange={(event) =>
-                setDailyScheduleCourtState((current) => ({
-                  ...current,
-                  courtId: event.target.value,
-                }))
-              }
-              placeholder="Use a court GUID"
-            />
+            Court
+            <select
+              value={dailyScheduleCourtSelection}
+              onChange={(event) => setDailyScheduleCourtSelection(event.target.value)}
+            >
+              <option value="">Select a court</option>
+              {createdCourts.map((court) => (
+                <option key={court.courtId} value={court.courtId}>
+                  {court.courtName} ({court.courtId})
+                </option>
+              ))}
+            </select>
           </label>
           <label className="checkbox">
             <input
@@ -904,6 +943,14 @@ function App() {
             />
             VIP only
           </label>
+          {dailyScheduleCourtTarget && (
+            <p className="status muted">
+              Selected schedule: {dailyScheduleCourtTarget}
+            </p>
+          )}
+          {dailyScheduleCourtSelection && (
+            <p className="status muted">Selected court: {dailyScheduleCourtSelection}</p>
+          )}
           <button
             type="submit"
             disabled={!canAddCourtToSchedule || dailyScheduleCourtLoading}
