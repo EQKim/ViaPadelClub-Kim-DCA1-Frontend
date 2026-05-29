@@ -15,6 +15,7 @@ import {
   createCourt,
   createDailySchedule,
   createManager,
+  getCourts,
   getUpcomingDailySchedules,
   grantVip,
   registerPlayer,
@@ -27,6 +28,7 @@ import type {
   CreateCourtRequest,
   CreateDailyScheduleRequest,
   CreateManagerRequest,
+  Court,
   PlayerAdminActionRequest,
   RegisterPlayerRequest,
   RegisterPlayerResponse,
@@ -100,7 +102,9 @@ function App() {
   const [courtState, setCourtState] = useState<CreateCourtRequest>(
     initialCourtState,
   )
-  const [createdCourts, setCreatedCourts] = useState<CreateCourtRequest[]>([])
+  const [courts, setCourts] = useState<Court[]>([])
+  const [courtsError, setCourtsError] = useState<string | null>(null)
+  const [courtsLoading, setCourtsLoading] = useState(false)
   const [courtStatus, setCourtStatus] = useState<string | null>(null)
   const [courtError, setCourtError] = useState<string | null>(null)
   const [courtLoading, setCourtLoading] = useState(false)
@@ -263,6 +267,21 @@ function App() {
     })
   }
 
+  const loadCourts = async () => {
+    setCourtsLoading(true)
+    setCourtsError(null)
+    try {
+      const response = await getCourts()
+      setCourts(Array.isArray(response.courts) ? response.courts : [])
+    } catch (error) {
+      setCourtsError(
+        error instanceof Error ? error.message : 'Failed to load courts',
+      )
+    } finally {
+      setCourtsLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!dailyScheduleCourtState.dailyScheduleCourtId.trim()) {
       setDailyScheduleCourtState((current) => ({
@@ -315,7 +334,7 @@ function App() {
     try {
       await createCourt(courtState)
       setCourtStatus('Court created.')
-      setCreatedCourts((current) => [...current, courtState])
+      await loadCourts()
       setCourtState(initialCourtState)
     } catch (error) {
       setCourtError(
@@ -918,18 +937,28 @@ function App() {
           </label>
           <label className="field">
             Court
-            <select
-              value={dailyScheduleCourtSelection}
-              onChange={(event) => setDailyScheduleCourtSelection(event.target.value)}
-            >
-              <option value="">Select a court</option>
-              {createdCourts.map((court) => (
-                <option key={court.courtId} value={court.courtId}>
-                  {court.courtName} ({court.courtId})
-                </option>
-              ))}
-            </select>
+            <div className="field-row">
+              <select
+                value={dailyScheduleCourtSelection}
+                onChange={(event) => setDailyScheduleCourtSelection(event.target.value)}
+                disabled={courtsLoading}
+              >
+                <option value="">Select a court</option>
+                {courts.map((court) => (
+                  <option key={court.courtId} value={court.courtId}>
+                    {court.courtName}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={loadCourts} disabled={courtsLoading}>
+                {courtsLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </label>
+          {!courtsLoading && courts.length === 0 && (
+            <p className="status muted">No courts available yet.</p>
+          )}
+          {courtsError && <p className="status error">{courtsError}</p>}
           <label className="checkbox">
             <input
               type="checkbox"

@@ -5,6 +5,7 @@ import type {
   CreateCourtRequest,
   CreateDailyScheduleRequest,
   CreateManagerRequest,
+  CourtsResponse,
   PlayerAdminActionRequest,
   RegisterPlayerRequest,
   RegisterPlayerResponse,
@@ -78,6 +79,14 @@ export async function createCourt(payload: CreateCourtRequest): Promise<void> {
   })
 
   await assertOk(response, 'Failed to create court')
+}
+
+export async function getCourts(): Promise<CourtsResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/courts`)
+
+  await assertOk(response, 'Failed to load courts')
+
+  return (await response.json()) as CourtsResponse
 }
 
 export async function createDailySchedule(

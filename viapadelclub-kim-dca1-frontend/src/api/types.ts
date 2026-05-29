@@ -20,6 +20,11 @@ export interface CreateCourtRequest {
   courtName: string
 }
 
+export interface Court {
+  courtId: string
+  courtName: string
+}
+
 export interface CreateDailyScheduleRequest {
   dailyScheduleId: string
   managerId: string
@@ -55,3 +60,7 @@ export interface UpcomingDailySchedule {
 }
 
 export type UpcomingDailySchedulesResponse = UpcomingDailySchedule[]
+
+export interface CourtsResponse {
+  courts: Court[]
+}
